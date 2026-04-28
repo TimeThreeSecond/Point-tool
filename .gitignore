@@ -1,0 +1,37 @@
+# Build artifacts
+*.exe
+*.obj
+*.class
+*.log
+
+# Generated files
+env.txt
+build_debug_log.txt
+
+# Build directories
+build/
+.dart_tool/
+.pub-cache/
+.pub/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter specific
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.flutter-plugins-dependencies
+/coverage/
+app.*.symbols
+app.*.map.json
+
+# Android build artifacts
+/android/app/debug
+/android/app/profile
+/android/app/release

@@ -1,0 +1,3 @@
+<Project>  
+  <ItemGroup><ClCompile Include=\"test.cpp\" /></ItemGroup>  
+</Project>  
