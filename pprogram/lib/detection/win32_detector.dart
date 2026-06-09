@@ -18,7 +18,9 @@ final int Function(int, Pointer<Uint32>) _getWindowThreadProcessId = _user32
     .lookupFunction<Uint32 Function(IntPtr, Pointer<Uint32>),
         int Function(int, Pointer<Uint32>)>('GetWindowThreadProcessId');
 
-final int Function(int, Pointer<Utf16>, int) _getModuleBaseName = _kernel32
+final DynamicLibrary _psapi = DynamicLibrary.open('psapi.dll');
+
+final int Function(int, Pointer<Utf16>, int) _getModuleBaseName = _psapi
     .lookupFunction<Uint32 Function(IntPtr, Pointer<Utf16>, Uint32),
         int Function(int, Pointer<Utf16>, int)>('GetModuleBaseNameW');
 

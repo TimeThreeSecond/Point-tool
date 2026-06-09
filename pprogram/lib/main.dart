@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:system_tray/system_tray.dart';
@@ -51,29 +52,33 @@ void _startDetection(AppState appState) {
 final SystemTray _systemTray = SystemTray();
 
 Future<void> _initSystemTray(AppState appState) async {
-  await _systemTray.initSystemTray(
-    iconPath: 'assets/icon.ico',
-    toolTip: 'SwitchPoint - 切点',
-  );
+  try {
+    await _systemTray.initSystemTray(
+      iconPath: '${Directory.current.path}/assets/icon.ico',
+      toolTip: 'SwitchPoint - 切点',
+    );
 
-  final menu = Menu();
-  await menu.buildFrom([
-    MenuItemLabel(
-      label: tr.openSwitchPoint,
-      onClicked: (_) async {
-        await windowManager.show();
-        await windowManager.focus();
-      },
-    ),
-    MenuItemLabel(
-      label: tr.quit,
-      onClicked: (_) async {
-        await _systemTray.destroy();
-        await windowManager.destroy();
-      },
-    ),
-  ]);
-  await _systemTray.setContextMenu(menu);
+    final menu = Menu();
+    await menu.buildFrom([
+      MenuItemLabel(
+        label: tr.openSwitchPoint,
+        onClicked: (_) async {
+          await windowManager.show();
+          await windowManager.focus();
+        },
+      ),
+      MenuItemLabel(
+        label: tr.quit,
+        onClicked: (_) async {
+          await _systemTray.destroy();
+          await windowManager.destroy();
+        },
+      ),
+    ]);
+    await _systemTray.setContextMenu(menu);
+  } catch (_) {
+    // System tray is non-critical; skip on failure
+  }
 }
 
 class SwitchPointApp extends StatelessWidget {

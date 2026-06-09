@@ -70,9 +70,14 @@ class _MainLayoutState extends State<MainLayout> {
                   child: const Icon(Icons.switch_access_shortcut, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  tr.appTitle,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      tr.appTitle,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ),
               ],
             ),
