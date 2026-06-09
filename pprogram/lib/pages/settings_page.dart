@@ -3,9 +3,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_state.dart';
 import '../models/app_state_provider.dart';
-import '../models/settings.dart';
-import '../models/dice.dart';
-import '../services/timer_service.dart';
+import '../i18n/strings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -16,13 +14,18 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   late AppState _appState;
-  late TimerService _timerService;
+  final _keywordController = TextEditingController();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _appState = AppStateProvider.of(context);
-    _timerService = TimerService(_appState);
+  }
+
+  @override
+  void dispose() {
+    _keywordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -37,67 +40,22 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
-              _buildStatusCard(),
+              _buildDetectionStatus(),
               const SizedBox(height: 24),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildSectionTitle('Timer Settings'),
-                      const SizedBox(height: 16),
-                      _buildSliderSetting(
-                        label: 'Work Duration (T1)',
-                        value: _appState.settings.workDurationMinutes.toDouble(),
-                        min: 10,
-                        max: 120,
-                        unit: 'min',
-                        onChanged: (value) {
-                          _appState.updateSettings(
-                            _appState.settings.copyWith(
-                              workDurationMinutes: value.round(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSliderSetting(
-                        label: 'Rest Duration (T2)',
-                        value: _appState.settings.restDurationMinutes.toDouble(),
-                        min: 1,
-                        max: 60,
-                        unit: 'min',
-                        onChanged: (value) {
-                          _appState.updateSettings(
-                            _appState.settings.copyWith(
-                              restDurationMinutes: value.round(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSliderSetting(
-                        label: 'Force Wait Duration',
-                        value: _appState.settings.forceWaitSeconds.toDouble(),
-                        min: 5,
-                        max: 15,
-                        unit: 'sec',
-                        onChanged: (value) {
-                          _appState.updateSettings(
-                            _appState.settings.copyWith(
-                              forceWaitSeconds: value.round(),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Default Dice'),
-                      const SizedBox(height: 16),
-                      _buildDiceSelector(),
-                      const SizedBox(height: 32),
-                      _buildSectionTitle('Do Not Disturb'),
-                      const SizedBox(height: 16),
+                      _buildEntertainmentAppList(),
+                      const SizedBox(height: 20),
+                      _buildDetectionSettings(),
+                      const SizedBox(height: 20),
+                      _buildPopupSettings(),
+                      const SizedBox(height: 20),
                       _buildDoNotDisturbSettings(),
+                      const SizedBox(height: 20),
+                      _buildLanguageSetting(),
                     ],
                   ),
                 ),
@@ -113,105 +71,193 @@ class _SettingsPageState extends State<SettingsPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'Settings',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1E1E2E),
-          ),
-        ),
-        _buildModeToggleButton(),
+        Text(tr.settings, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1E1E2E))),
+        Icon(Icons.fiber_manual_record, color: _appState.detectionActive ? Colors.green : Colors.grey, size: 16),
       ],
     );
   }
 
-  Widget _buildModeToggleButton() {
-    final isRunning = _appState.currentMode == AppMode.working ||
-        _appState.currentMode == AppMode.resting ||
-        _appState.currentMode == AppMode.tasking;
+  Widget _buildDetectionStatus() {
+    final ratio = _appState.entertainmentRatio;
+    final title = _appState.currentForegroundTitle ?? tr.waiting;
+    final process = _appState.currentForegroundProcess ?? '';
 
-    return ElevatedButton.icon(
-      onPressed: () {
-        if (isRunning) {
-          _timerService.stopTimer();
-        } else {
-          _timerService.startWorkTimer();
-        }
-      },
-      icon: Icon(isRunning ? Icons.stop : Icons.play_arrow),
-      label: Text(isRunning ? 'Stop' : 'Start SwitchPoint'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: isRunning ? Colors.red : const Color(0xFF6366F1),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr.liveDetection, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          _buildInfoRow(tr.currentWindow, title),
+          if (process.isNotEmpty) _buildInfoRow(tr.process, process),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text('${tr.entertainmentRatio}: ', style: const TextStyle(fontSize: 14)),
+              Expanded(
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  backgroundColor: Colors.grey[200],
+                  valueColor: AlwaysStoppedAnimation(
+                    ratio > _appState.settings.triggerThreshold ? Colors.red : const Color(0xFF6366F1),
+                  ),
+                  minHeight: 8,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${(ratio * 100).toStringAsFixed(0)}${tr.percent}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: ratio > _appState.settings.triggerThreshold ? Colors.red : const Color(0xFF6366F1),
+                ),
+              ),
+            ],
+          ),
+          if (_appState.detectionActive) ...[
+            const SizedBox(height: 8),
+            Text(
+              tr.windowAndThresholdSummary
+                  .format({'w': '${_appState.settings.detectionWindowMinutes}', 't': '${(_appState.settings.triggerThreshold * 100).toStringAsFixed(0)}', 'b': '${_appState.todayBreaks}'}),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Text('$label: ', style: const TextStyle(fontSize: 14, color: Colors.grey)),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
           ),
         ],
       ),
-      child: Row(
+    );
+  }
+
+  Widget _buildEntertainmentAppList() {
+    final keywords = _appState.settings.entertainmentKeywords;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: _appState.currentMode.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              _appState.currentMode.icon,
-              color: _appState.currentMode.color,
-              size: 32,
+          Text(tr.entertainmentApps, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(tr.entertainmentAppsHint, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ...keywords.map((kw) => Chip(
+                    label: Text(kw),
+                    deleteIcon: const Icon(Icons.close, size: 16),
+                    onDeleted: () {
+                      final updated = List<String>.from(keywords)..remove(kw);
+                      _appState.updateSettings(
+                        _appState.settings.copyWith(entertainmentKeywords: updated),
+                      );
+                    },
+                  )),
+              ActionChip(
+                avatar: const Icon(Icons.add, size: 16),
+                label: Text(tr.add),
+                onPressed: _showAddKeywordDialog,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddKeywordDialog() {
+    _keywordController.clear();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr.addKeyword),
+        content: TextField(
+          controller: _keywordController,
+          decoration: InputDecoration(hintText: tr.keywordHint, border: const OutlineInputBorder()),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.cancel)),
+          ElevatedButton(
+            onPressed: () {
+              final text = _keywordController.text.trim();
+              if (text.isNotEmpty) {
+                final updated = List<String>.from(_appState.settings.entertainmentKeywords)..add(text);
+                _appState.updateSettings(_appState.settings.copyWith(entertainmentKeywords: updated));
+              }
+              Navigator.pop(context);
+            },
+            child: Text(tr.add),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetectionSettings() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr.detectionParams, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildSliderSetting(
+            label: tr.detectionWindow,
+            value: _appState.settings.detectionWindowMinutes.toDouble(),
+            min: 5,
+            max: 120,
+            step: 5,
+            unit: tr.minutes,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(detectionWindowMinutes: v.round()),
             ),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _appState.currentMode.displayName,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E1E2E),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                if (_appState.remainingSeconds > 0)
-                  Text(
-                    'Remaining: ${_appState.remainingTimeText}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  )
-                else
-                  const Text(
-                    'Waiting to start',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-              ],
+          const SizedBox(height: 12),
+          _buildSliderSetting(
+            label: tr.triggerThreshold,
+            value: _appState.settings.triggerThreshold * 100,
+            min: 30,
+            max: 100,
+            step: 5,
+            unit: tr.percent,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(triggerThreshold: v / 100),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSliderSetting(
+            label: tr.minEntertainment,
+            value: _appState.settings.minEntertainmentMinutes.toDouble(),
+            min: 1,
+            max: 30,
+            step: 1,
+            unit: tr.minutes,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(minEntertainmentMinutes: v.round()),
             ),
           ),
         ],
@@ -219,13 +265,102 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF1E1E2E),
+  Widget _buildPopupSettings() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr.popupSettings, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildSliderSetting(
+            label: tr.forceWait,
+            value: _appState.settings.forceWaitSeconds.toDouble(),
+            min: 3,
+            max: 20,
+            step: 1,
+            unit: tr.seconds,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(forceWaitSeconds: v.round()),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: Text(tr.showDice),
+            subtitle: Text(tr.showDiceHint),
+            value: _appState.settings.showDice,
+            activeColor: const Color(0xFF6366F1),
+            contentPadding: EdgeInsets.zero,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(showDice: v),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoNotDisturbSettings() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr.doNotDisturb, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          SwitchListTile(
+            title: Text(tr.enableDnd),
+            subtitle: Text(tr.dndHint),
+            value: _appState.settings.doNotDisturbEnabled,
+            activeColor: const Color(0xFF6366F1),
+            contentPadding: EdgeInsets.zero,
+            onChanged: (v) => _appState.updateSettings(
+              _appState.settings.copyWith(doNotDisturbEnabled: v),
+            ),
+          ),
+          if (_appState.settings.doNotDisturbEnabled) ...[
+            const Divider(),
+            ListTile(
+              title: Text(tr.startTime),
+              trailing: Text(
+                _appState.settings.doNotDisturbStart?.toString() ?? '22:00',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+            ListTile(
+              title: Text(tr.endTime),
+              trailing: Text(
+                _appState.settings.doNotDisturbEnd?.toString() ?? '08:00',
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSetting() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(tr.language, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          TextButton.icon(
+            onPressed: () => _appState.toggleLanguage(),
+            icon: const Icon(Icons.translate, size: 20),
+            label: Text(
+              tr.langName,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -235,121 +370,32 @@ class _SettingsPageState extends State<SettingsPage> {
     required double value,
     required double min,
     required double max,
+    required double step,
     required String unit,
     required ValueChanged<double> onChanged,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                '${value.round()} $unit',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
-                ),
-              ),
-            ],
-          ),
-          Slider(
-            value: value,
-            min: min,
-            max: max,
-            divisions: (max - min).round(),
-            activeColor: const Color(0xFF6366F1),
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDiceSelector() {
-    return Wrap(
-      spacing: 12,
-      children: DiceType.values.map((dice) {
-        final isSelected = _appState.settings.defaultDice == dice;
-        return ChoiceChip(
-          label: Text('${dice.displayName} (d${dice.faces})'),
-          selected: isSelected,
-          selectedColor: const Color(0xFF6366F1),
-          labelStyle: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-          onSelected: (selected) {
-            if (selected) {
-              _appState.updateSettings(
-                _appState.settings.copyWith(defaultDice: dice),
-              );
-            }
-          },
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildDoNotDisturbSettings() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          SwitchListTile(
-            title: const Text('Enable Do Not Disturb'),
-            subtitle: const Text('No interruptions during set hours'),
-            value: _appState.settings.doNotDisturbEnabled,
-            activeColor: const Color(0xFF6366F1),
-            onChanged: (value) {
-              _appState.updateSettings(
-                _appState.settings.copyWith(doNotDisturbEnabled: value),
-              );
-            },
-          ),
-          if (_appState.settings.doNotDisturbEnabled) ...[
-            const Divider(),
-            ListTile(
-              title: const Text('Start Time'),
-              trailing: Text(
-                _appState.settings.doNotDisturbStart?.toString() ?? '22:00',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
-                ),
-              ),
-            ),
-            ListTile(
-              title: const Text('End Time'),
-              trailing: Text(
-                _appState.settings.doNotDisturbEnd?.toString() ?? '08:00',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366F1),
-                ),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            Text(
+              '${value.round()}$unit',
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
             ),
           ],
-        ],
-      ),
+        ),
+        Slider(
+          value: value,
+          min: min,
+          max: max,
+          divisions: ((max - min) / step).round(),
+          activeColor: const Color(0xFF6366F1),
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

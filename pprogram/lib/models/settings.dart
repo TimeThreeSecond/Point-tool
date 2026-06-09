@@ -1,60 +1,68 @@
 // App settings model for the SwitchPoint app
 
-import 'dice.dart';
-
 class AppSettings {
-  int workDurationMinutes;
-  int restDurationMinutes;
+  // Entertainment detection
+  List<String> entertainmentKeywords;
+  int detectionWindowMinutes;
+  double triggerThreshold;
+  int minEntertainmentMinutes;
+
+  // Break popup
   int forceWaitSeconds;
-  DiceType defaultDice;
+  bool showDice;
+
+  // Do not disturb
   bool doNotDisturbEnabled;
   TimeOfDay? doNotDisturbStart;
   TimeOfDay? doNotDisturbEnd;
-  bool fullscreenDetectionEnabled;
 
   AppSettings({
-    this.workDurationMinutes = 30,
-    this.restDurationMinutes = 5,
+    this.entertainmentKeywords = const ['chrome', 'edge', 'video', '哔哩哔哩', '抖音'],
+    this.detectionWindowMinutes = 30,
+    this.triggerThreshold = 0.7,
+    this.minEntertainmentMinutes = 3,
     this.forceWaitSeconds = 8,
-    this.defaultDice = DiceType.d6,
+    this.showDice = true,
     this.doNotDisturbEnabled = false,
     this.doNotDisturbStart,
     this.doNotDisturbEnd,
-    this.fullscreenDetectionEnabled = true,
   });
 
   factory AppSettings.defaultSettings() {
     return AppSettings(
-      workDurationMinutes: 30,
-      restDurationMinutes: 5,
+      entertainmentKeywords: ['chrome', 'edge', 'video', '哔哩哔哩', '抖音'],
+      detectionWindowMinutes: 30,
+      triggerThreshold: 0.7,
+      minEntertainmentMinutes: 3,
       forceWaitSeconds: 8,
-      defaultDice: DiceType.d6,
+      showDice: true,
       doNotDisturbEnabled: false,
       doNotDisturbStart: const TimeOfDay(hour: 22, minute: 0),
       doNotDisturbEnd: const TimeOfDay(hour: 8, minute: 0),
-      fullscreenDetectionEnabled: true,
     );
   }
 
   AppSettings copyWith({
-    int? workDurationMinutes,
-    int? restDurationMinutes,
+    List<String>? entertainmentKeywords,
+    int? detectionWindowMinutes,
+    double? triggerThreshold,
+    int? minEntertainmentMinutes,
     int? forceWaitSeconds,
-    DiceType? defaultDice,
+    bool? showDice,
     bool? doNotDisturbEnabled,
     TimeOfDay? doNotDisturbStart,
     TimeOfDay? doNotDisturbEnd,
-    bool? fullscreenDetectionEnabled,
   }) {
     return AppSettings(
-      workDurationMinutes: workDurationMinutes ?? this.workDurationMinutes,
-      restDurationMinutes: restDurationMinutes ?? this.restDurationMinutes,
+      entertainmentKeywords: entertainmentKeywords ?? this.entertainmentKeywords,
+      detectionWindowMinutes: detectionWindowMinutes ?? this.detectionWindowMinutes,
+      triggerThreshold: triggerThreshold ?? this.triggerThreshold,
+      minEntertainmentMinutes: minEntertainmentMinutes ?? this.minEntertainmentMinutes,
       forceWaitSeconds: forceWaitSeconds ?? this.forceWaitSeconds,
-      defaultDice: defaultDice ?? this.defaultDice,
+      showDice: showDice ?? this.showDice,
       doNotDisturbEnabled: doNotDisturbEnabled ?? this.doNotDisturbEnabled,
       doNotDisturbStart: doNotDisturbStart ?? this.doNotDisturbStart,
       doNotDisturbEnd: doNotDisturbEnd ?? this.doNotDisturbEnd,
-      fullscreenDetectionEnabled: fullscreenDetectionEnabled ?? this.fullscreenDetectionEnabled,
     );
   }
 }

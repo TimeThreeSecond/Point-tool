@@ -3,8 +3,9 @@
 import 'package:flutter/material.dart';
 import 'settings.dart';
 import 'task.dart';
-import 'dice.dart';
-import 'history_record.dart';
+import '../i18n/strings.dart';
+
+enum Language { zh, en }
 
 enum AppMode {
   idle('待机', Icons.pause_circle_outline, Colors.grey),
@@ -40,40 +41,35 @@ class AppState extends ChangeNotifier {
   // Tasks
   List<Task> userTasks = [];
   List<Task> get allTasks => [...userTasks, ...defaultSystemTasks];
-  List<Task> get tasksForDraw => allTasks.where((t) {
-    if (t.lastCompletedAt == null) return true;
-    final hoursSince = DateTime.now().difference(t.lastCompletedAt!).inHours;
-    return hoursSince >= 24;
-  }).toList();
 
-  // Stats
-  int totalPoints = 0;
-  int totalRolls = 0;
-  int totalTasksAccepted = 0;
-  int totalSkips = 0;
-  int currentStreak = 0;
-  int maxStreak = 0;
+  // Stats (simplified)
+  int todayBreaks = 0;
+  int tasksCompleted = 0;
+  int currentStreakDays = 0;
+  int maxStreakDays = 0;
 
-  // History
-  List<HistoryRecord> history = [];
+  // Detection state
+  String? currentForegroundTitle;
+  String? currentForegroundProcess;
+  double entertainmentRatio = 0.0;
+  bool detectionActive = false;
 
-  // Current break
-  DiceType? currentBreakDice;
-  int? currentRolledValue;
-  bool? currentIsReward;
-  Task? currentTask;
-
-  // Break popup countdown
+  // Break popup state
+  bool showBreakPopup = false;
   int _breakCountdownSeconds = 0;
   int get breakCountdownSeconds => _breakCountdownSeconds;
+  Task? currentTask;
+
+  // Language
+  Language _language = Language.zh;
+  Language get language => _language;
+
+  // Today's date for streak tracking
+  DateTime _lastBreakDate = DateTime.now().subtract(const Duration(days: 1));
+  List<int> hourlyTriggers = List.filled(24, 0);
 
   void setMode(AppMode mode) {
     _currentMode = mode;
-    notifyListeners();
-  }
-
-  void setRemainingSeconds(int seconds) {
-    _remainingSeconds = seconds;
     notifyListeners();
   }
 
@@ -87,6 +83,76 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleLanguage() {
+    _language = _language == Language.zh ? Language.en : Language.zh;
+    setLanguage(_language);
+    notifyListeners();
+  }
+
+  // Detection updates (called from tracker onTick)
+  void updateForeground(String? title, String? process, double ratio) {
+    currentForegroundTitle = title;
+    currentForegroundProcess = process;
+    entertainmentRatio = ratio;
+    detectionActive = true;
+    notifyListeners();
+  }
+
+  // Trigger break popup
+  void triggerBreak() {
+    showBreakPopup = true;
+    todayBreaks++;
+    _breakCountdownSeconds = settings.forceWaitSeconds;
+    setMode(AppMode.breaking);
+
+    // Update hourly trigger distribution
+    final hour = DateTime.now().hour;
+    if (hour >= 0 && hour < 24) hourlyTriggers[hour]++;
+
+    // Update streak
+    final today = DateTime.now();
+    if (_lastBreakDate.day != today.day || _lastBreakDate.month != today.month) {
+      if (today.difference(_lastBreakDate).inDays <= 1) {
+        currentStreakDays++;
+      } else {
+        currentStreakDays = 1;
+      }
+      if (currentStreakDays > maxStreakDays) {
+        maxStreakDays = currentStreakDays;
+      }
+      _lastBreakDate = today;
+    }
+
+    notifyListeners();
+  }
+
+  void dismissBreak() {
+    showBreakPopup = false;
+    _breakCountdownSeconds = 0;
+    currentTask = null;
+    setMode(AppMode.idle);
+    notifyListeners();
+  }
+
+  void completeTask(Task task) {
+    tasksCompleted++;
+    task.lastCompletedAt = DateTime.now();
+    task.completedCount++;
+    notifyListeners();
+  }
+
+  void assignRandomTask() {
+    final available = allTasks;
+    if (available.isEmpty) {
+      currentTask = null;
+      return;
+    }
+    final index = DateTime.now().millisecondsSinceEpoch % available.length;
+    currentTask = available[index];
+    notifyListeners();
+  }
+
+  // Task management
   void addTask(Task task) {
     userTasks.add(task);
     notifyListeners();
@@ -102,83 +168,6 @@ class AppState extends ChangeNotifier {
 
   void removeTask(String taskId) {
     userTasks.removeWhere((t) => t.id == taskId);
-    notifyListeners();
-  }
-
-  void addHistoryRecord(HistoryRecord record) {
-    history.insert(0, record);
-    if (history.length > 100) {
-      history = history.sublist(0, 100);
-    }
-    notifyListeners();
-  }
-
-  void addPoints(int points) {
-    totalPoints += points;
-    notifyListeners();
-  }
-
-  void incrementRolls() {
-    totalRolls++;
-    notifyListeners();
-  }
-
-  void incrementTasksAccepted() {
-    totalTasksAccepted++;
-    currentStreak++;
-    if (currentStreak > maxStreak) {
-      maxStreak = currentStreak;
-    }
-    notifyListeners();
-  }
-
-  void incrementSkips() {
-    totalSkips++;
-    currentStreak = 0;
-    notifyListeners();
-  }
-
-  void completeTask(Task task) {
-    task.lastCompletedAt = DateTime.now();
-    task.completedCount++;
-    notifyListeners();
-  }
-
-  Task? drawRandomTask() {
-    final available = tasksForDraw;
-    if (available.isEmpty) return null;
-    // 70% user tasks, 30% system tasks
-    final userTasksPool = available.where((t) => t.isUserCreated).toList();
-    final systemTasksPool = available.where((t) => !t.isUserCreated).toList();
-    
-    if (userTasksPool.isNotEmpty && (systemTasksPool.isEmpty || DateTime.now().millisecond % 10 < 7)) {
-      final index = DateTime.now().millisecond % userTasksPool.length;
-      return userTasksPool[index];
-    } else if (systemTasksPool.isNotEmpty) {
-      final index = DateTime.now().millisecond % systemTasksPool.length;
-      return systemTasksPool[index];
-    }
-    return null;
-  }
-
-  void setCurrentBreak({
-    DiceType? dice,
-    int? rolledValue,
-    bool? isReward,
-    Task? task,
-  }) {
-    currentBreakDice = dice;
-    currentRolledValue = rolledValue;
-    currentIsReward = isReward;
-    currentTask = task;
-    notifyListeners();
-  }
-
-  void clearCurrentBreak() {
-    currentBreakDice = null;
-    currentRolledValue = null;
-    currentIsReward = null;
-    currentTask = null;
     notifyListeners();
   }
 }

@@ -5,6 +5,7 @@ import '../models/app_state.dart';
 import '../models/app_state_provider.dart';
 import '../models/task.dart';
 import '../services/task_service.dart';
+import '../i18n/strings.dart';
 
 class TaskManagerPage extends StatefulWidget {
   const TaskManagerPage({super.key});
@@ -48,18 +49,11 @@ class _TaskManagerPageState extends State<TaskManagerPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Task Manager',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E1E2E),
-                    ),
-                  ),
+                  Text(tr.taskManager, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1E1E2E))),
                   ElevatedButton.icon(
                     onPressed: _showAddTaskDialog,
                     icon: const Icon(Icons.add),
-                    label: const Text('Add Task'),
+                    label: Text(tr.addTask),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF6366F1),
                       foregroundColor: Colors.white,
@@ -68,12 +62,12 @@ class _TaskManagerPageState extends State<TaskManagerPage> {
                 ],
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('User Tasks'),
+              Text(tr.userTasks, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E1E2E))),
               const SizedBox(height: 12),
               Expanded(
                 flex: 2,
                 child: _appState.userTasks.isEmpty
-                    ? _buildEmptyState('No user tasks yet')
+                    ? _buildEmptyState()
                     : ListView.builder(
                         itemCount: _appState.userTasks.length,
                         itemBuilder: (context, index) {
@@ -83,7 +77,7 @@ class _TaskManagerPageState extends State<TaskManagerPage> {
                       ),
               ),
               const SizedBox(height: 24),
-              _buildSectionTitle('System Tasks'),
+              Text(tr.systemTasks, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E1E2E))),
               const SizedBox(height: 12),
               Expanded(
                 flex: 1,
@@ -102,25 +96,14 @@ class _TaskManagerPageState extends State<TaskManagerPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF1E1E2E),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inbox, size: 48, color: Colors.grey[300]),
           const SizedBox(height: 8),
-          Text(message, style: TextStyle(color: Colors.grey[400])),
+          Text(tr.noUserTasks, style: TextStyle(color: Colors.grey[400])),
         ],
       ),
     );
@@ -135,29 +118,24 @@ class _TaskManagerPageState extends State<TaskManagerPage> {
           child: Icon(task.tag.icon, color: Colors.white, size: 20),
         ),
         title: Text(task.content),
-        subtitle: Text('${task.tag.displayName} | ${task.durationMinutes} min'),
+        subtitle: Text('${task.tag.displayName} | ${task.durationMinutes} ${tr.minutes}'),
         trailing: isUserTask
             ? IconButton(
                 icon: const Icon(Icons.delete, color: Colors.red),
                 onPressed: () => _taskService.removeTask(task.id),
               )
-            : const Chip(label: Text('System')),
+            : Chip(label: Text(tr.system)),
       ),
     );
   }
 
   Color _getTagColor(TaskTag tag) {
     switch (tag) {
-      case TaskTag.body:
-        return Colors.green;
-      case TaskTag.study:
-        return Colors.blue;
-      case TaskTag.organize:
-        return Colors.orange;
-      case TaskTag.creative:
-        return Colors.purple;
-      case TaskTag.social:
-        return Colors.pink;
+      case TaskTag.body: return Colors.green;
+      case TaskTag.study: return Colors.blue;
+      case TaskTag.organize: return Colors.orange;
+      case TaskTag.creative: return Colors.purple;
+      case TaskTag.social: return Colors.pink;
     }
   }
 }
@@ -179,50 +157,40 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Add New Task'),
+      title: Text(tr.addTask),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _contentController,
-            decoration: const InputDecoration(labelText: 'Task Content'),
+            decoration: const InputDecoration(labelText: 'Task Content', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<TaskTag>(
             value: _selectedTag,
-            decoration: const InputDecoration(labelText: 'Tag'),
+            decoration: const InputDecoration(labelText: 'Tag', border: OutlineInputBorder()),
             items: TaskTag.values.map((tag) {
-              return DropdownMenuItem(
-                value: tag,
-                child: Text(tag.displayName),
-              );
+              return DropdownMenuItem(value: tag, child: Text(tag.displayName));
             }).toList(),
             onChanged: (value) {
-              if (value != null) {
-                setState(() => _selectedTag = value);
-              }
+              if (value != null) setState(() => _selectedTag = value);
             },
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
             value: _duration,
-            decoration: const InputDecoration(labelText: 'Duration (minutes)'),
+            decoration: const InputDecoration(labelText: 'Duration (min)', border: OutlineInputBorder()),
             items: [1, 3, 5, 10].map((d) {
-              return DropdownMenuItem(value: d, child: Text('$d min'));
+              return DropdownMenuItem(value: d, child: Text('$d ${tr.minutes}'));
             }).toList(),
             onChanged: (value) {
-              if (value != null) {
-                setState(() => _duration = value);
-              }
+              if (value != null) setState(() => _duration = value);
             },
           ),
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr.cancel)),
         ElevatedButton(
           onPressed: () {
             if (_contentController.text.isNotEmpty) {
@@ -230,7 +198,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               Navigator.pop(context);
             }
           },
-          child: const Text('Add'),
+          child: Text(tr.add),
         ),
       ],
     );

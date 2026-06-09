@@ -1,13 +1,14 @@
-// Main layout with sidebar navigation for the SwitchPoint app
+// Main layout with sidebar navigation
 
 import 'package:flutter/material.dart';
 import '../models/app_state.dart';
+import '../models/app_state_provider.dart';
+import '../i18n/strings.dart';
 import 'settings_page.dart';
 import 'break_popup_page.dart';
-import 'dice_game_page.dart';
+import 'detection_page.dart';
 import 'task_manager_page.dart';
 import 'stats_page.dart';
-import 'history_page.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -19,155 +20,109 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
-  final List<NavigationItem> _navItems = [
-    NavigationItem(icon: Icons.settings, label: '设置', page: const SettingsPage()),
-    NavigationItem(icon: Icons.notifications_active, label: '打断弹窗', page: const BreakPopupPage()),
-    NavigationItem(icon: Icons.casino, label: '骰子游戏', page: const DiceGamePage()),
-    NavigationItem(icon: Icons.assignment, label: '任务管理', page: const TaskManagerPage()),
-    NavigationItem(icon: Icons.bar_chart, label: '统计数据', page: const StatsPage()),
-    NavigationItem(icon: Icons.history, label: '历史记录', page: const HistoryPage()),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          // Sidebar
-          Container(
-            width: 200,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E2E),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(2, 0),
-                ),
-              ],
+    final appState = AppStateProvider.of(context);
+    return ListenableBuilder(
+      listenable: appState,
+      builder: (context, _) {
+        return Stack(
+          children: [
+            Scaffold(
+              body: Row(
+                children: [
+                  _buildSidebar(appState),
+                  Expanded(child: _pages[_selectedIndex]),
+                ],
+              ),
             ),
-            child: Column(
+            if (appState.showBreakPopup) const BreakPopupPage(),
+          ],
+        );
+      },
+    );
+  }
+
+  static const _pages = <Widget>[
+    SettingsPage(),
+    DetectionPage(),
+    TaskManagerPage(),
+    StatsPage(),
+  ];
+
+  Widget _buildSidebar(AppState state) {
+    return Container(
+      width: 180,
+      decoration: const BoxDecoration(color: Color(0xFF1E1E2E)),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               children: [
-                // App title
                 Container(
-                  padding: const EdgeInsets.all(24),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.switch_access_shortcut,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '切点',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'SwitchPoint',
-                            style: TextStyle(
-                              color: Colors.white54,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1),
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: const Icon(Icons.switch_access_shortcut, color: Colors.white, size: 20),
                 ),
-                const Divider(color: Colors.white12),
-                // Navigation items
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: _navItems.length,
-                    itemBuilder: (context, index) {
-                      final item = _navItems[index];
-                      final isSelected = _selectedIndex == index;
-                      return ListTile(
-                        leading: Icon(
-                          item.icon,
-                          color: isSelected ? const Color(0xFF6366F1) : Colors.white54,
-                        ),
-                        title: Text(
-                          item.label,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white54,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        selected: isSelected,
-                        selectedTileColor: const Color(0xFF6366F1).withOpacity(0.1),
-                        onTap: () {
-                          setState(() {
-                            _selectedIndex = index;
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-                // Bottom info
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  child: const Column(
-                    children: [
-                      Text(
-                        'v1.0.0',
-                        style: TextStyle(
-                          color: Colors.white24,
-                          fontSize: 12,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'MVP 阶段',
-                        style: TextStyle(
-                          color: Colors.white24,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(width: 10),
+                Text(
+                  tr.appTitle,
+                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
-          // Main content
+          const Divider(color: Colors.white12, height: 1),
           Expanded(
-            child: Container(
-              color: const Color(0xFFF5F5F7),
-              child: _navItems[_selectedIndex].page,
+            child: Column(
+              children: [
+                _buildNavItem(0, Icons.settings, tr.navSettings),
+                _buildNavItem(1, Icons.monitor_heart, tr.navDetection),
+                _buildNavItem(2, Icons.assignment, tr.navTasks),
+                _buildNavItem(3, Icons.bar_chart, tr.navStats),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: state.detectionActive ? Colors.green : Colors.grey,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  state.detectionActive ? tr.running : tr.stopped,
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class NavigationItem {
-  final IconData icon;
-  final String label;
-  final Widget page;
-
-  NavigationItem({
-    required this.icon,
-    required this.label,
-    required this.page,
-  });
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final selected = _selectedIndex == index;
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, color: selected ? const Color(0xFF6366F1) : Colors.white54, size: 20),
+      title: Text(label, style: TextStyle(color: selected ? Colors.white : Colors.white54, fontSize: 14)),
+      selected: selected,
+      selectedTileColor: const Color(0xFF6366F1).withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onTap: () => setState(() => _selectedIndex = index),
+    );
+  }
 }

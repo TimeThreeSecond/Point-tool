@@ -2,6 +2,7 @@
 
 import '../models/task.dart';
 import '../models/app_state.dart';
+import '../i18n/strings.dart';
 
 class TaskService {
   final AppState appState;
@@ -26,13 +27,9 @@ class TaskService {
   void removeTask(String taskId) {
     // Ensure at least one task remains
     if (appState.userTasks.length + defaultSystemTasks.length <= 1) {
-      throw Exception('至少需要保留一个任务');
+      throw Exception(tr.atLeastOneTask);
     }
     appState.removeTask(taskId);
-  }
-
-  Task? drawRandomTask() {
-    return appState.drawRandomTask();
   }
 
   void completeTask(Task task) {

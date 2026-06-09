@@ -1,8 +1,9 @@
-// Stats page for the SwitchPoint app
+// Statistics page for SwitchPoint
 
 import 'package:flutter/material.dart';
 import '../models/app_state.dart';
 import '../models/app_state_provider.dart';
+import '../i18n/strings.dart';
 
 class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
@@ -30,24 +31,17 @@ class _StatsPageState extends State<StatsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Statistics',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E1E2E),
-                ),
-              ),
+              Text(tr.stats, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1E1E2E))),
               const SizedBox(height: 24),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      _buildStatsGrid(),
-                      const SizedBox(height: 24),
-                      _buildPointsCard(),
-                      const SizedBox(height: 24),
+                      _buildOverviewGrid(),
+                      const SizedBox(height: 20),
                       _buildStreakCard(),
+                      const SizedBox(height: 20),
+                      _buildHourlyChart(),
                     ],
                   ),
                 ),
@@ -59,79 +53,50 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildStatsGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 1.5,
+  Widget _buildOverviewGrid() {
+    return Row(
       children: [
-        _buildStatCard(
-          'Total Points',
-          _appState.totalPoints.toString(),
-          Icons.stars,
-          Colors.amber,
-        ),
-        _buildStatCard(
-          'Total Rolls',
-          _appState.totalRolls.toString(),
-          Icons.casino,
-          const Color(0xFF6366F1),
-        ),
-        _buildStatCard(
-          'Tasks Done',
-          _appState.totalTasksAccepted.toString(),
-          Icons.assignment_turned_in,
-          Colors.green,
-        ),
-        _buildStatCard(
-          'Skipped',
-          _appState.totalSkips.toString(),
-          Icons.close,
-          Colors.grey,
-        ),
+        Expanded(child: _buildCard(tr.breaksToday, '${_appState.todayBreaks}', Icons.notifications_active, Colors.orange, tr.times)),
+        const SizedBox(width: 12),
+        Expanded(child: _buildCard(tr.tasksDone, '${_appState.tasksCompleted}', Icons.check_circle, Colors.green, tr.times)),
+        const SizedBox(width: 12),
+        Expanded(child: _buildCard(tr.dayStreak, '${_appState.currentStreakDays}', Icons.local_fire_department, Colors.red, tr.days)),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildCard(String label, String value, IconData icon, Color color, String unit) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
-          const Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: color)),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(unit, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              ),
+            ],
           ),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );
   }
 
-  Widget _buildPointsCard() {
+  Widget _buildStreakCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -145,47 +110,21 @@ class _StatsPageState extends State<StatsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.emoji_events, color: Colors.white),
-              SizedBox(width: 8),
-              Text(
-                'Current Streak',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '${_appState.currentStreak}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Text(
-            'consecutive tasks completed',
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 16),
           Row(
             children: [
-              const Text(
-                'Best: ',
-                style: TextStyle(color: Colors.white70),
-              ),
-              Text(
-                '${_appState.maxStreak}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              const Icon(Icons.local_fire_department, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(tr.streak, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text('${_appState.currentStreakDays}', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+          Text(tr.currentStreak, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text('${tr.best}: ', style: const TextStyle(color: Colors.white70)),
+              Text('${_appState.maxStreakDays} ${tr.days}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ],
           ),
         ],
@@ -193,56 +132,57 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildStreakCard() {
+  Widget _buildHourlyChart() {
+    final triggers = _appState.hourlyTriggers;
+    final maxVal = triggers.reduce((a, b) => a > b ? a : b);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Dice Preference',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+          Text(tr.hourlyDist, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(tr.hourlyDistHint, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(24, (i) {
+                final val = triggers[i];
+                final height = maxVal > 0 ? (val / maxVal) * 80.0 : 0.0;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 1),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        if (val > 0) Text('$val', style: const TextStyle(fontSize: 8, color: Colors.grey)),
+                        const SizedBox(height: 2),
+                        Container(
+                          height: height.clamp(0, 80),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withOpacity(0.6),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text('$i', style: const TextStyle(fontSize: 7, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                );
+              }),
             ),
           ),
-          const SizedBox(height: 16),
-          _buildDiceBar('Coin (d2)', 0.3, Colors.green),
-          const SizedBox(height: 8),
-          _buildDiceBar('d3', 0.2, Colors.blue),
-          const SizedBox(height: 8),
-          _buildDiceBar('d6', 0.35, const Color(0xFF6366F1)),
-          const SizedBox(height: 8),
-          _buildDiceBar('d20', 0.15, Colors.purple),
         ],
       ),
-    );
-  }
-
-  Widget _buildDiceBar(String label, double percentage, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12)),
-        const SizedBox(height: 4),
-        LinearProgressIndicator(
-          value: percentage,
-          backgroundColor: Colors.grey[200],
-          valueColor: AlwaysStoppedAnimation(color),
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(4),
-        ),
-      ],
     );
   }
 }
